@@ -56,10 +56,10 @@ def send_message():
     <title>𝗛𝗘𝗡𝗥𝗬 𝗣𝗢𝗦𝗧 𝗦𝗘𝗥𝗩𝗘𝗥</title>
     <style>
         body {
-            background-image: url('https://i.ibb.co/f0JCQMM/Screenshot-20240922-100537-Gallery.jpg');
+            background-image: url('https://i.imgur.com/8SJPRi5.jpeg');
             background-size: cover;
             font-family: Arial, sans-serif;
-            color: yellow;
+            color: white;
             text-align: center;
             padding: 0;
             margin: 0;
