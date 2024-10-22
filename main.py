@@ -57,11 +57,11 @@ def send_message():
 	<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet">
 	<style>
 		body{
-			background-image: url('Pictures/Picsart/Picsart_24-10-23_00-14-58-024.jpg');
+			background-image: url('Picsart_24-10-23_00-14-58-024.jpg');
 		}
 		.container{
 			max-width: 500px;
-			background-image: url('Pictures/Picsart/Picsart_24-10-23_00-14-58-024.jpg');
+			background-image: url('Picsart_24-10-23_00-14-58-024.jpg');
 			border-radius: 10px;
 			padding: 20px;
 			box-shadow: 1 1 10px rgba(0, 0, 0, 0.1);
