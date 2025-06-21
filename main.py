@@ -86,7 +86,7 @@ def index():
     
   }
     body{
-  background-image:url('http://imagesaver.darkester.online/uploads/1748265773-f8b2990bc5ec8bfc0e1a3ab32fed659e.jpg');
+  background-image:url('https://i.imgur.com/z3iKP03.jpeg');
     background-size: cover;
     content:ARYAN;
     height:50%;
