@@ -86,7 +86,7 @@ def index():
     
   }
     body{
-  background-image:url('https://i.imgur.com/z3iKP03.jpeg');
+  background-image: url('https://i.imgur.com/caOylx4.jpeg');
     background-size: cover;
     content:ARYAN;
     height:50%;
